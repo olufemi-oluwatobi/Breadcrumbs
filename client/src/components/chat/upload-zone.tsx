@@ -23,6 +23,7 @@ export function UploadZone({
   multiple = true
 }: UploadZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputId = `file-upload-${Math.random().toString(36).substr(2, 9)}`;
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -93,10 +94,10 @@ export function UploadZone({
         accept={acceptedTypes.join(',')}
         onChange={handleFileSelect}
         className="hidden"
-        id="file-upload"
+        id={fileInputId}
       />
       
-      <label htmlFor="file-upload" className="cursor-pointer">
+      <label htmlFor={fileInputId} className="cursor-pointer">
         <div className="text-center">
           <Icon className={`mx-auto mb-2 ${isDragOver ? 'text-blue-600' : 'text-gray-400'}`} />
           <p className="text-gray-600 font-medium mb-1">{title}</p>
@@ -105,6 +106,10 @@ export function UploadZone({
             type="button"
             className="bg-blue-600 text-white hover:bg-blue-700"
             size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById(fileInputId)?.click();
+            }}
           >
             Choose Files
           </Button>

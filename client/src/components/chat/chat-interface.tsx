@@ -163,7 +163,12 @@ export function ChatInterface({
       {/* Chat Input */}
       <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            type="button"
+            onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+          >
             <Paperclip size={20} />
           </Button>
           <div className="flex-1 relative">
@@ -176,6 +181,7 @@ export function ChatInterface({
               className="w-full px-4 py-3 bg-gray-100 rounded-2xl border-0 focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all"
             />
             <Button
+              type="button"
               onClick={handleSendMessage}
               disabled={!inputValue.trim()}
               size="sm"
