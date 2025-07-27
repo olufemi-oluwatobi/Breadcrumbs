@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bot, User, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Bot, User, CheckCircle, AlertCircle, Loader2, FileText } from "lucide-react";
 import { StoryboardPreview } from "./storyboard-preview";
 import { TimelinePreview } from "./timeline-preview";
 
@@ -160,6 +160,30 @@ export function MessageBubble({ type, content, metadata, timestamp, className }:
             {metadata.timeline && (
               <div className="mt-4">
                 <TimelinePreview />
+              </div>
+            )}
+
+            {metadata.scriptText && (
+              <div className="mt-3 p-3 bg-white/50 rounded-lg border border-gray-200">
+                <div className={`flex items-center mb-2 ${getTextStyle()}`}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  <span className="font-medium">Script Content</span>
+                </div>
+                <div className={`text-sm ${getTextStyle()} bg-white p-3 rounded border italic`}>
+                  "{metadata.scriptText}"
+                </div>
+              </div>
+            )}
+
+            {metadata.confirmation && (
+              <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-yellow-800 font-medium">Files ready: {metadata.fileCount}</span>
+                  <div className="flex space-x-2 text-sm">
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded">Type 'yes'</span>
+                    <span className="px-2 py-1 bg-red-100 text-red-800 rounded">Type 'no'</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

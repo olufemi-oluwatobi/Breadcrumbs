@@ -17,11 +17,12 @@ export default function Home() {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [processingStep, setProcessingStep] = useState<'idle' | 'synthesis' | 'storyboard' | 'timeline'>('idle');
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const { toast } = useToast();
 
   // Add welcome message on component mount
   useEffect(() => {
-    addMessage('system', "👋 Welcome to VideoChat Pro! I'm your AI video editing assistant. Let's create something amazing together!\n\nTo get started, please upload your script and any audio files you'd like to include.");
+    addMessage('system', "👋 Welcome to VideoChat Pro! I'm your AI video editing assistant. Let's create something amazing together!\n\nTo get started, you can:\n• Type your script directly in the chat\n• Upload script files and audio files\n• Or upload any initial content you have");
   }, []);
 
   // Update progress percentage based on current step
@@ -29,7 +30,7 @@ export default function Home() {
 
   const addMessage = useCallback((type: ChatMessage['type'], content: string, metadata?: Record<string, any>) => {
     const newMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
       content,
       metadata,
@@ -41,22 +42,66 @@ export default function Home() {
   const handleSendMessage = useCallback((content: string) => {
     addMessage('user', content);
     
-    // Simple AI responses based on content
+    // Handle text content as script input for step 1
+    if (currentStep === 1) {
+      setTimeout(() => {
+        addMessage('success', "Great! I've received your script content:", {
+          scriptText: content
+        });
+        setTimeout(() => {
+          addMessage('system', "Perfect! Now please upload any audio files you want to include, or proceed to the next step by uploading your media files.");
+        }, 1500);
+      }, 800);
+      return;
+    }
+    
+    // Simple AI responses based on content for other steps
     setTimeout(() => {
       if (content.toLowerCase().includes('help')) {
         addMessage('system', "I'm here to help! You can upload files, ask questions about the video editing process, or request specific adjustments to your project.");
       } else if (content.toLowerCase().includes('status')) {
         addMessage('system', `Your project is currently at step ${currentStep} of 6. ${
-          currentStep === 1 ? "Please upload your script and audio files to continue." :
-          currentStep === 2 ? "Upload your media files (videos, images, audio)." :
-          currentStep === 3 ? "Ready for frame extraction from your videos." :
+          currentStep === 1 ? "Send me your script text or upload script/audio files to continue." :
+          currentStep === 2 ? "Upload your media files (videos, images, audio). You can upload multiple files." :
+          currentStep === 3 ? "Ready for AI synthesis of your materials." :
           "Processing your content..."
         }`);
+      } else if (content.toLowerCase().includes('next') || content.toLowerCase().includes('continue')) {
+        if (currentStep === 1) {
+          addMessage('system', "Moving to media collection. Please upload your videos, images, and additional audio files.");
+          setCurrentStep(2);
+        } else if (currentStep === 2) {
+          showConfirmationPrompt();
+        }
+      } else if (content.toLowerCase().includes('proceed') || content.toLowerCase().includes('yes')) {
+        if (showConfirmation) {
+          setShowConfirmation(false);
+          addMessage('system', "Excellent! Starting AI synthesis process...");
+          setCurrentStep(3);
+          setTimeout(() => startAISynthesis(), 1000);
+        } else {
+          addMessage('system', "I understand you want to work on your video project. Please upload the necessary files for the current step, and I'll guide you through the process!");
+        }
+      } else if (content.toLowerCase().includes('no') || content.toLowerCase().includes('cancel')) {
+        if (showConfirmation) {
+          setShowConfirmation(false);
+          addMessage('system', "No problem! You can continue uploading more files. Type 'next' when you're ready to proceed to AI synthesis.");
+        } else {
+          addMessage('system', "I understand you want to work on your video project. Please upload the necessary files for the current step, and I'll guide you through the process!");
+        }
       } else {
         addMessage('system', "I understand you want to work on your video project. Please upload the necessary files for the current step, and I'll guide you through the process!");
       }
     }, 1000);
-  }, [addMessage, currentStep]);
+  }, [addMessage, currentStep, showConfirmation]);
+
+  const showConfirmationPrompt = useCallback(() => {
+    setShowConfirmation(true);
+    addMessage('system', "⚠️ Important Notice\n\nOnce we proceed to AI synthesis, you won't be able to go back and change your files. You'll need to restart the entire process if you want to make changes.\n\nCurrent files uploaded: " + uploadedFiles.length + " files\n\nAre you ready to proceed? Type 'yes' to continue or 'no' to upload more files.", {
+      confirmation: true,
+      fileCount: uploadedFiles.length
+    });
+  }, [addMessage, uploadedFiles.length]);
 
   const handleFileUpload = useCallback(async (files: File[], step: number) => {
     setUploadedFiles(prev => [...prev, ...files]);
@@ -79,11 +124,9 @@ export default function Home() {
         setCurrentStep(2);
       }, 1500);
     } else if (step === 2) {
-      // Media files - start AI synthesis
+      // Media files - allow multiple uploads
       setTimeout(() => {
-        addMessage('system', "Excellent! I have all your materials. Let me start the AI synthesis process.");
-        setCurrentStep(3);
-        startAISynthesis();
+        addMessage('system', "Great! I've added these files to your project. You can upload more media files, or type 'next' when you're ready to proceed to AI synthesis.");
       }, 1500);
     }
   }, [addMessage]);
