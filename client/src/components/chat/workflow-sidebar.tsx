@@ -107,7 +107,6 @@ export function WorkflowSidebar({ currentStep, progressPercentage, className }: 
                           ? 'text-blue-600'
                           : 'text-gray-500'
                       }
-                      size={16}
                     />
                   )}
                 </div>

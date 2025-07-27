@@ -98,7 +98,7 @@ export function UploadZone({
       
       <label htmlFor="file-upload" className="cursor-pointer">
         <div className="text-center">
-          <Icon className={`mx-auto mb-2 ${isDragOver ? 'text-blue-600' : 'text-gray-400'}`} size={32} />
+          <Icon className={`mx-auto mb-2 ${isDragOver ? 'text-blue-600' : 'text-gray-400'}`} />
           <p className="text-gray-600 font-medium mb-1">{title}</p>
           <p className="text-gray-400 text-sm mb-3">{subtitle}</p>
           <Button 

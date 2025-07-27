@@ -57,7 +57,7 @@ export const useFFmpeg = ({
       const ffmpeg = new FFmpeg();
       ffmpegRef.current = ffmpeg;
       
-      const baseURL = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd';
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
       
       await ffmpeg.load({
         coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),

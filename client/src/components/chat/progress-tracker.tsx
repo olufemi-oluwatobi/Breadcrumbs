@@ -1,5 +1,6 @@
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+import { Film } from "lucide-react";
 
 interface ProgressTrackerProps {
   currentFrame: number;
