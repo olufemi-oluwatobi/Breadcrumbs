@@ -1,6 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bot, User, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { StoryboardPreview } from "./storyboard-preview";
+import { TimelinePreview } from "./timeline-preview";
 
 export type MessageType = 'system' | 'user' | 'progress' | 'success' | 'error' | 'processing';
 
@@ -146,6 +148,18 @@ export function MessageBubble({ type, content, metadata, timestamp, className }:
                   <span>{metadata.frames.length} frames extracted</span>
                   <button className="text-blue-600 hover:underline">View All</button>
                 </div>
+              </div>
+            )}
+
+            {metadata.storyboard && (
+              <div className="mt-4">
+                <StoryboardPreview />
+              </div>
+            )}
+
+            {metadata.timeline && (
+              <div className="mt-4">
+                <TimelinePreview />
               </div>
             )}
           </div>

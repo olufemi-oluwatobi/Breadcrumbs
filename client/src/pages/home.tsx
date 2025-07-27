@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { WorkflowSidebar } from "@/components/chat/workflow-sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
-import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { useToast } from "@/hooks/use-toast";
 
 interface ChatMessage {
@@ -17,43 +16,8 @@ export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [processingStep, setProcessingStep] = useState<'idle' | 'synthesis' | 'storyboard' | 'timeline'>('idle');
   const { toast } = useToast();
-
-  const {
-    isLoaded,
-    isLoading,
-    error,
-    frames,
-    currentFrame,
-    totalFrames,
-    extractionTime,
-    extractFrames,
-    clearFrames
-  } = useFFmpeg({
-    onFrameExtracted: (frameUrl, frameNumber) => {
-      // Update progress message in real-time
-      setMessages(prev => prev.map(msg => 
-        msg.type === 'progress' && msg.metadata?.isFrameExtraction
-          ? {
-              ...msg,
-              metadata: {
-                ...msg.metadata,
-                currentFrame: frameNumber + 1,
-                progress: ((frameNumber + 1) / totalFrames) * 100
-              }
-            }
-          : msg
-      ));
-    },
-    onError: (error) => {
-      addMessage('error', `Frame extraction failed: ${error.message}`);
-      toast({
-        title: "Processing Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
 
   // Add welcome message on component mount
   useEffect(() => {
@@ -115,60 +79,49 @@ export default function Home() {
         setCurrentStep(2);
       }, 1500);
     } else if (step === 2) {
-      // Media files - check for videos to extract frames
-      const videoFiles = files.filter(file => file.type.startsWith('video/'));
-      
-      if (videoFiles.length > 0) {
-        setTimeout(() => {
-          addMessage('system', "Excellent! I found video files in your upload. Let me extract frames for processing.");
-          setCurrentStep(3);
-          processVideoFiles(videoFiles);
-        }, 1500);
-      } else {
-        setTimeout(() => {
-          addMessage('system', "Files uploaded successfully! Since no videos were detected, we can proceed to the synthesis stage.");
-          setCurrentStep(4);
-        }, 1500);
-      }
+      // Media files - start AI synthesis
+      setTimeout(() => {
+        addMessage('system', "Excellent! I have all your materials. Let me start the AI synthesis process.");
+        setCurrentStep(3);
+        startAISynthesis();
+      }, 1500);
     }
   }, [addMessage]);
 
-  const processVideoFiles = useCallback(async (videoFiles: File[]) => {
-    for (const videoFile of videoFiles) {
-      try {
-        // Add progress message
-        addMessage('progress', `🎬 Extracting frames from your video...`, {
-          isFrameExtraction: true,
-          filename: videoFile.name,
-          currentFrame: 0,
-          totalFrames: 0,
-          extractionTime: 0,
-          fps: 1,
-          progress: 0
-        });
+  const startAISynthesis = useCallback(async () => {
+    setProcessingStep('synthesis');
+    
+    // Show AI synthesis progress
+    addMessage('processing', "🤖 AI is analyzing your materials...\n\nAnalyzing script, matching audio, and organizing visual elements");
+    
+    // Simulate AI processing stages
+    setTimeout(() => {
+      addMessage('progress', "🎯 Creating storyboard structure...", {
+        progress: 25,
+        stage: "Storyboard Generation"
+      });
+      setProcessingStep('storyboard');
+    }, 2000);
 
-        // Start frame extraction
-        await extractFrames(videoFile, 1);
+    setTimeout(() => {
+      addMessage('progress', "🎨 Designing visual timeline...", {
+        progress: 50,
+        stage: "Timeline Creation"
+      });
+      setProcessingStep('timeline');
+    }, 4000);
 
-        // Show completion message with frame preview
-        addMessage('success', `✨ Frame extraction complete! Here's a preview:`, {
-          frames: frames.slice(0, 6), // Show first 6 frames
-          totalFrames: frames.length
-        });
+    setTimeout(() => {
+      addMessage('success', "✨ AI synthesis complete! Here's your storyboard and timeline preview:", {
+        storyboard: true,
+        timeline: true
+      });
+      setCurrentStep(5);
+      setProcessingStep('idle');
+    }, 6000);
+  }, [addMessage]);
 
-        // Move to next step
-        setTimeout(() => {
-          addMessage('processing', "🤖 AI is synthesizing your materials...\n\nAnalyzing script, matching audio, and organizing visual elements");
-          setCurrentStep(4);
-        }, 2000);
-
-      } catch (error) {
-        console.error('Frame extraction failed:', error);
-      }
-    }
-  }, [addMessage, extractFrames, frames]);
-
-  const ffmpegStatus = isLoading ? 'loading' : error ? 'error' : isLoaded ? 'loaded' : 'loading';
+  const ffmpegStatus = 'loaded'; // Always show as loaded since we removed FFmpeg
 
   return (
     <div className="flex h-screen bg-gray-50">

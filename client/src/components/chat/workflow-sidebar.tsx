@@ -35,16 +35,16 @@ export function WorkflowSidebar({ currentStep, progressPercentage, className }: 
     },
     {
       id: 3,
-      title: "Frame Extraction",
-      subtitle: "Process video frames",
-      icon: Users,
+      title: "AI Synthesis",
+      subtitle: "Intelligent processing",
+      icon: Sparkles,
       status: currentStep > 3 ? 'completed' : currentStep === 3 ? 'active' : 'pending'
     },
     {
       id: 4,
-      title: "AI Synthesis",
+      title: "Content Assembly",
       subtitle: "Combine materials",
-      icon: Sparkles,
+      icon: Users,
       status: currentStep > 4 ? 'completed' : currentStep === 4 ? 'active' : 'pending'
     },
     {
