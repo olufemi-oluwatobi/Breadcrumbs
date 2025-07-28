@@ -85,8 +85,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Project not found" });
       }
 
-      if (!project.scriptAnalysis || !project.mediaAnalyses) {
-        return res.status(400).json({ error: "Script and media analysis required" });
+      if (!project.scriptAnalysis || !project.mediaAnalyses || project.mediaAnalyses.length === 0) {
+        return res.status(400).json({ 
+          error: "Script and media analysis required",
+          details: {
+            hasScript: !!project.scriptAnalysis,
+            hasMediaAnalysis: !!project.mediaAnalyses,
+            mediaCount: project.mediaAnalyses?.length || 0
+          }
+        });
       }
 
       const assemblyPlan = await createAssemblyPlan(project.scriptAnalysis, project.mediaAnalyses);

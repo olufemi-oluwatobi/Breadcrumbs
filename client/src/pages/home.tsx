@@ -175,7 +175,7 @@ export default function Home() {
         addMessage('success', "✅ Project created successfully!");
       } catch (error) {
         console.error('Project creation failed:', error);
-        addMessage('error', `❌ Failed to create project: ${error.message}`);
+        addMessage('error', `❌ Failed to create project: ${(error as Error).message}`);
         toast({
           title: "Error",
           description: "Failed to create project. Please try again.",
@@ -203,10 +203,10 @@ export default function Home() {
             scriptContent: scriptContent
           });
           
-          addMessage('success', `✅ Script analysis complete! AI found key themes: ${scriptResult.analysis?.mainThemes?.join(', ') || 'themes identified'}`);
+          addMessage('success', `✅ Script analysis complete! AI found key themes: ${(scriptResult as any)?.analysis?.mainThemes?.join(', ') || 'themes identified'}`);
         } catch (scriptError) {
           console.error('Script analysis failed:', scriptError);
-          addMessage('error', `❌ Script analysis failed: ${scriptError.message || 'Unknown error'}`);
+          addMessage('error', `❌ Script analysis failed: ${(scriptError as Error).message || 'Network or API error'}`);
           throw scriptError;
         }
       }
@@ -228,7 +228,7 @@ export default function Home() {
           addMessage('success', `✅ Media analysis complete! Processed ${uploadedFiles.length} files and categorized content types.`);
         } catch (mediaError) {
           console.error('Media analysis failed:', mediaError);
-          addMessage('error', `❌ Media analysis failed: ${mediaError.message || 'Unknown error'}`);
+          addMessage('error', `❌ Media analysis failed: ${(mediaError as Error).message || 'Network or API error'}`);
           throw mediaError;
         }
       }
@@ -254,15 +254,15 @@ export default function Home() {
             addMessage('success', "✨ AI synthesis complete! Here's your intelligent assembly plan:", {
               storyboard: true,
               timeline: true,
-              assemblyPlan: result.assemblyPlan,
-              storyboardDescription: result.storyboardDescription
+              assemblyPlan: (result as any).assemblyPlan,
+              storyboardDescription: (result as any).storyboardDescription
             });
             setCurrentStep(5);
             setProcessingStep('idle');
           }, 1500);
         } catch (assemblyError) {
           console.error('Assembly plan creation failed:', assemblyError);
-          addMessage('error', `❌ Assembly plan creation failed: ${assemblyError.message || 'Unknown error'}`);
+          addMessage('error', `❌ Assembly plan creation failed: ${(assemblyError as Error).message || 'Analysis data may be incomplete'}`);
           throw assemblyError;
         }
       }
