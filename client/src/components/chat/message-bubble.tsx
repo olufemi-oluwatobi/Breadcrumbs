@@ -101,18 +101,27 @@ export function MessageBubble({ type, content, metadata, timestamp, className }:
               </div>
             )}
             
-            {metadata.progress && (
+            {(metadata.progress !== undefined || metadata.stage) && (
               <div className="mt-3">
-                <div className={`flex justify-between text-sm mb-1 ${getTextStyle()}`}>
-                  <span>Processing: {metadata.filename}</span>
-                  <span>{metadata.currentFrame}/{metadata.totalFrames} frames</span>
-                </div>
-                <div className="w-full bg-orange-200 rounded-full h-2">
-                  <div 
-                    className="bg-orange-500 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${metadata.progress}%` }}
-                  />
-                </div>
+                {metadata.stage && (
+                  <div className={`text-sm font-medium mb-2 ${getTextStyle()}`}>
+                    {metadata.stage}
+                  </div>
+                )}
+                {metadata.progress !== undefined && (
+                  <div className="w-full bg-orange-200 rounded-full h-2 mb-2">
+                    <div 
+                      className="bg-orange-500 h-2 rounded-full transition-all duration-500" 
+                      style={{ width: `${metadata.progress}%` }}
+                    />
+                  </div>
+                )}
+                {metadata.filename && metadata.currentFrame && metadata.totalFrames && (
+                  <div className={`flex justify-between text-sm mb-1 ${getTextStyle()}`}>
+                    <span>Processing: {metadata.filename}</span>
+                    <span>{metadata.currentFrame}/{metadata.totalFrames} frames</span>
+                  </div>
+                )}
                 {metadata.extractionTime && (
                   <div className="grid grid-cols-2 gap-3 text-sm mt-3">
                     <div className={getTextStyle()}>

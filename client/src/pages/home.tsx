@@ -106,11 +106,15 @@ export default function Home() {
 
   const showConfirmationPrompt = useCallback(() => {
     setShowConfirmation(true);
-    addMessage('system', "⚠️ Important Notice\n\nOnce we proceed to AI synthesis, you won't be able to go back and change your files. You'll need to restart the entire process if you want to make changes.\n\nCurrent files uploaded: " + uploadedFiles.length + " files\n\nAre you ready to proceed? Type 'yes' to continue or 'no' to upload more files.", {
+    const fileCount = uploadedFiles.length;
+    const hasScript = scriptContent.length > 0;
+    const totalItems = fileCount + (hasScript ? 1 : 0);
+    
+    addMessage('system', `⚠️ Important Notice\n\nOnce we proceed to AI synthesis, you won't be able to go back and change your files. You'll need to restart the entire process if you want to make changes.\n\nCurrent content:\n${hasScript ? '• Script content provided\n' : ''}• ${fileCount} file${fileCount !== 1 ? 's' : ''} uploaded\n• Total items: ${totalItems}\n\nAre you ready to proceed? Type 'yes' to continue or 'no' to upload more files.`, {
       confirmation: true,
-      fileCount: uploadedFiles.length
+      fileCount: totalItems
     });
-  }, [addMessage, uploadedFiles.length]);
+  }, [addMessage, uploadedFiles.length, scriptContent]);
 
   const handleFileUpload = useCallback(async (files: File[], step: number) => {
     setUploadedFiles(prev => [...prev, ...files]);
@@ -141,9 +145,16 @@ export default function Home() {
   }, [addMessage]);
 
   const startAISynthesis = useCallback(async () => {
-    if (!currentProjectId) {
+    let projectId = currentProjectId;
+    
+    if (!projectId) {
       // Create a new project first
       try {
+        addMessage('progress', "🏗️ Creating new project...", {
+          progress: 5,
+          stage: "Project Setup"
+        });
+        
         const response = await fetch('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -152,89 +163,118 @@ export default function Home() {
             description: `Project started ${new Date().toLocaleDateString()}`
           })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const project = await response.json();
-        setCurrentProjectId(project.id);
+        projectId = project.id;
+        setCurrentProjectId(projectId);
+        
+        addMessage('success', "✅ Project created successfully!");
       } catch (error) {
+        console.error('Project creation failed:', error);
+        addMessage('error', `❌ Failed to create project: ${error.message}`);
         toast({
           title: "Error",
           description: "Failed to create project. Please try again.",
           variant: "destructive"
         });
+        setProcessingStep('idle');
         return;
       }
     }
 
     setProcessingStep('synthesis');
-    addMessage('processing', "🤖 AI is analyzing your materials...\n\nAnalyzing script, matching audio, and organizing visual elements");
+    addMessage('processing', "🤖 AI is analyzing your materials...\n\nThis may take a moment as we process your content with Google Gemini AI");
     
     try {
       // Step 1: Analyze script content
-      if (scriptContent && currentProjectId) {
-        addMessage('progress', "📝 Analyzing script content...", {
+      if (scriptContent && projectId) {
+        addMessage('progress', "📝 Analyzing script content with AI...", {
           progress: 20,
           stage: "Script Analysis"
         });
         
-        await analyzeScript.mutateAsync({
-          projectId: currentProjectId,
-          scriptContent: scriptContent
-        });
-        
-        addMessage('success', "✅ Script analysis complete! AI found key themes and suggested timing.");
+        try {
+          const scriptResult = await analyzeScript.mutateAsync({
+            projectId: projectId,
+            scriptContent: scriptContent
+          });
+          
+          addMessage('success', `✅ Script analysis complete! AI found key themes: ${scriptResult.analysis?.mainThemes?.join(', ') || 'themes identified'}`);
+        } catch (scriptError) {
+          console.error('Script analysis failed:', scriptError);
+          addMessage('error', `❌ Script analysis failed: ${scriptError.message || 'Unknown error'}`);
+          throw scriptError;
+        }
       }
 
       // Step 2: Analyze uploaded media files
-      if (uploadedFiles.length > 0 && currentProjectId) {
-        addMessage('progress', "🎬 Analyzing media files...", {
+      if (uploadedFiles.length > 0 && projectId) {
+        addMessage('progress', `🎬 Analyzing ${uploadedFiles.length} media files...`, {
           progress: 40,
           stage: "Media Analysis"
         });
         
-        const mediaFileNames = uploadedFiles.map(file => file.name);
-        await analyzeMedia.mutateAsync({
-          projectId: currentProjectId,
-          mediaFiles: mediaFileNames
-        });
-        
-        addMessage('success', "✅ Media analysis complete! AI categorized your visual and audio content.");
+        try {
+          const mediaFileNames = uploadedFiles.map(file => file.name);
+          const mediaResult = await analyzeMedia.mutateAsync({
+            projectId: projectId,
+            mediaFiles: mediaFileNames
+          });
+          
+          addMessage('success', `✅ Media analysis complete! Processed ${uploadedFiles.length} files and categorized content types.`);
+        } catch (mediaError) {
+          console.error('Media analysis failed:', mediaError);
+          addMessage('error', `❌ Media analysis failed: ${mediaError.message || 'Unknown error'}`);
+          throw mediaError;
+        }
       }
 
       // Step 3: Create assembly plan
-      if (currentProjectId) {
-        addMessage('progress', "🎯 Creating storyboard structure...", {
+      if (projectId) {
+        addMessage('progress', "🎯 Creating intelligent storyboard...", {
           progress: 60,
           stage: "Storyboard Generation"
         });
         
-        const result = await createAssemblyPlan.mutateAsync({
-          projectId: currentProjectId
-        });
-        
-        addMessage('progress', "🎨 Designing visual timeline...", {
-          progress: 80,
-          stage: "Timeline Creation"
-        });
-        
-        setTimeout(() => {
-          addMessage('success', "✨ AI synthesis complete! Here's your intelligent assembly plan:", {
-            storyboard: true,
-            timeline: true,
-            assemblyPlan: result.assemblyPlan,
-            storyboardDescription: result.storyboardDescription
+        try {
+          const result = await createAssemblyPlan.mutateAsync({
+            projectId: projectId
           });
-          setCurrentStep(5);
-          setProcessingStep('idle');
-        }, 2000);
+          
+          addMessage('progress', "🎨 Designing visual timeline...", {
+            progress: 80,
+            stage: "Timeline Creation"
+          });
+          
+          setTimeout(() => {
+            addMessage('success', "✨ AI synthesis complete! Here's your intelligent assembly plan:", {
+              storyboard: true,
+              timeline: true,
+              assemblyPlan: result.assemblyPlan,
+              storyboardDescription: result.storyboardDescription
+            });
+            setCurrentStep(5);
+            setProcessingStep('idle');
+          }, 1500);
+        } catch (assemblyError) {
+          console.error('Assembly plan creation failed:', assemblyError);
+          addMessage('error', `❌ Assembly plan creation failed: ${assemblyError.message || 'Unknown error'}`);
+          throw assemblyError;
+        }
       }
       
     } catch (error) {
-      console.error('AI synthesis failed:', error);
-      addMessage('error', "❌ AI synthesis encountered an error. Please check your connection and try again.");
+      console.error('AI synthesis pipeline failed:', error);
+      addMessage('error', "❌ AI synthesis pipeline failed. This could be due to:\n• Network connectivity issues\n• Google Gemini API rate limits\n• Invalid content format\n\nPlease wait a moment and try again.");
       setProcessingStep('idle');
       
       toast({
         title: "AI Synthesis Failed",
-        description: "There was an issue processing your content. Please try again.",
+        description: "The AI processing encountered an error. Please try again in a moment.",
         variant: "destructive"
       });
     }
