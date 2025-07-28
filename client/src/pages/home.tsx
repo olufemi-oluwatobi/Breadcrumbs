@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { WorkflowSidebar } from "@/components/chat/workflow-sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalyzeScript, useAnalyzeMedia, useCreateAssemblyPlan } from "@/hooks/use-ai-synthesis";
 
 interface ChatMessage {
   id: string;
@@ -18,7 +19,14 @@ export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [processingStep, setProcessingStep] = useState<'idle' | 'synthesis' | 'storyboard' | 'timeline'>('idle');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [scriptContent, setScriptContent] = useState<string>("");
   const { toast } = useToast();
+  
+  // AI synthesis hooks
+  const analyzeScript = useAnalyzeScript();
+  const analyzeMedia = useAnalyzeMedia();
+  const createAssemblyPlan = useCreateAssemblyPlan();
 
   // Add welcome message on component mount
   useEffect(() => {
@@ -44,6 +52,7 @@ export default function Home() {
     
     // Handle text content as script input for step 1
     if (currentStep === 1) {
+      setScriptContent(content);
       setTimeout(() => {
         addMessage('success', "Great! I've received your script content:", {
           scriptText: content
@@ -132,37 +141,104 @@ export default function Home() {
   }, [addMessage]);
 
   const startAISynthesis = useCallback(async () => {
+    if (!currentProjectId) {
+      // Create a new project first
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'New Video Project',
+            description: `Project started ${new Date().toLocaleDateString()}`
+          })
+        });
+        const project = await response.json();
+        setCurrentProjectId(project.id);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create project. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setProcessingStep('synthesis');
-    
-    // Show AI synthesis progress
     addMessage('processing', "🤖 AI is analyzing your materials...\n\nAnalyzing script, matching audio, and organizing visual elements");
     
-    // Simulate AI processing stages
-    setTimeout(() => {
-      addMessage('progress', "🎯 Creating storyboard structure...", {
-        progress: 25,
-        stage: "Storyboard Generation"
-      });
-      setProcessingStep('storyboard');
-    }, 2000);
+    try {
+      // Step 1: Analyze script content
+      if (scriptContent && currentProjectId) {
+        addMessage('progress', "📝 Analyzing script content...", {
+          progress: 20,
+          stage: "Script Analysis"
+        });
+        
+        await analyzeScript.mutateAsync({
+          projectId: currentProjectId,
+          scriptContent: scriptContent
+        });
+        
+        addMessage('success', "✅ Script analysis complete! AI found key themes and suggested timing.");
+      }
 
-    setTimeout(() => {
-      addMessage('progress', "🎨 Designing visual timeline...", {
-        progress: 50,
-        stage: "Timeline Creation"
-      });
-      setProcessingStep('timeline');
-    }, 4000);
+      // Step 2: Analyze uploaded media files
+      if (uploadedFiles.length > 0 && currentProjectId) {
+        addMessage('progress', "🎬 Analyzing media files...", {
+          progress: 40,
+          stage: "Media Analysis"
+        });
+        
+        const mediaFileNames = uploadedFiles.map(file => file.name);
+        await analyzeMedia.mutateAsync({
+          projectId: currentProjectId,
+          mediaFiles: mediaFileNames
+        });
+        
+        addMessage('success', "✅ Media analysis complete! AI categorized your visual and audio content.");
+      }
 
-    setTimeout(() => {
-      addMessage('success', "✨ AI synthesis complete! Here's your storyboard and timeline preview:", {
-        storyboard: true,
-        timeline: true
-      });
-      setCurrentStep(5);
+      // Step 3: Create assembly plan
+      if (currentProjectId) {
+        addMessage('progress', "🎯 Creating storyboard structure...", {
+          progress: 60,
+          stage: "Storyboard Generation"
+        });
+        
+        const result = await createAssemblyPlan.mutateAsync({
+          projectId: currentProjectId
+        });
+        
+        addMessage('progress', "🎨 Designing visual timeline...", {
+          progress: 80,
+          stage: "Timeline Creation"
+        });
+        
+        setTimeout(() => {
+          addMessage('success', "✨ AI synthesis complete! Here's your intelligent assembly plan:", {
+            storyboard: true,
+            timeline: true,
+            assemblyPlan: result.assemblyPlan,
+            storyboardDescription: result.storyboardDescription
+          });
+          setCurrentStep(5);
+          setProcessingStep('idle');
+        }, 2000);
+      }
+      
+    } catch (error) {
+      console.error('AI synthesis failed:', error);
+      addMessage('error', "❌ AI synthesis encountered an error. Please check your connection and try again.");
       setProcessingStep('idle');
-    }, 6000);
-  }, [addMessage]);
+      
+      toast({
+        title: "AI Synthesis Failed",
+        description: "There was an issue processing your content. Please try again.",
+        variant: "destructive"
+      });
+    }
+  }, [addMessage, currentProjectId, scriptContent, uploadedFiles, analyzeScript, analyzeMedia, createAssemblyPlan, toast]);
 
   const ffmpegStatus = 'loaded'; // Always show as loaded since we removed FFmpeg
 
